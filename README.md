@@ -1,47 +1,56 @@
-import pandas as pd
-import numpy as np
-from collections import Counter
+import pandas as pd 
+df = pd.read_csv('diabetes.csv')
+print(df.head())
+X = df.iloc[:,:-1].copy()
+y = df.iloc[:,-1].copy()
+
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score
-
-data = pd.read_csv('diabetes.csv')
-data.head()
-
-X = data.drop(columns='Outcome').values
-y = data['Outcome'].values
-
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=101)
-
-def euclidean_distance(point1, point2):
-    return np.sqrt(np.sum((point1 - point2)**2))
-
-def knn_predict(X_train, y_train, X_test, k):
- pred = []
- for test_point in X_test:
-  distances = [euclidean_distance(train_point, test_point) for train_point in X_train]
-  nearest_indices = np.argsort(distances)[:k]
-  nearest_labels = y_train[nearest_indices]
-# Use majority voting to determine the predicted label
-  mejvoting = Counter(nearest_labels).most_common()[0][0] ##(0,3),(1,2)
-  pred.append(mejvoting)
-  
-return np.array(pred)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2,random_state=42)
 
 
- # Calculate accuracy
-y_pred=knn_predict(X_train, y_train, X_test, k=5)
+from sklearn.preprocessing import StandardScaler
+scaler = StandardScaler()
+X_train = scaler.fit_transform(X_train)
+X_test = scaler.transform(X_test)
+
+from sklearn import svm
+clf = svm.SVC(kernel='rbf')
+clf.fit(X_train, y_train)
+y_pred = clf.predict(X_test)
+
+
+from sklearn.metrics import accuracy_score,confusion_matrix
 accuracy = accuracy_score(y_test, y_pred)
-print(f'Accuracy: {accuracy}')
+print(f'Accuracy: {accuracy:.2f}')
 
-from sklearn.metrics import confusion_matrix
-cm=confusion_matrix(y_test,y_pred)
-tp=cm[0][0]
-fp=cm[0][1]
-fn=cm[1][0]
-tn=cm[1][1]
-print(f'TP: {tp}')
-print(f'FP: {fp}')
-print(f'FN: {fn}')
-print(f'TN: {tn}')
-accuracy=(tp+tn)/(tp+fp+tn+fn)
-print(f'Accuracy: {accuracy}')
+print("\nConfusion Matrix:\n", confusion_matrix(y_test, y_pred))
+
+
+# Function to predict class based on user input
+def predict_class():
+    print("\nEnter the following values for prediction:")
+    try:
+        Pregnancies = float(input("\nPregnancies:" " "))
+        Glucose = float(input("\nGlucose:" " "))
+        BloodPressure = float(input("\nBloodPressure:" " "))
+        SkinThickness = float(input("\nSkinThickness:" " "))
+        Insulin = float(input("\nInsulin:" ""))
+        BMI = float(input("\nBMI:" ""))
+        DiabetesPedigreeFunction = float(input("\nDiabetesPedigreeFunction:" ""))
+        Age = float(input("\nAge:" ""))
+
+        # Combine inputs into a DataFrame with column names matching the dataset
+        user_data = pd.DataFrame([[Pregnancies,Glucose,BloodPressure,SkinThickness,Insulin,BMI,DiabetesPedigreeFunction,Age]], columns=X.columns)
+        
+        # Scale the user input
+        user_data_scaled = scaler.transform(user_data)
+        
+        # Predict the class
+        user_pred =clf.predict(user_data_scaled)
+        
+        print(f"\nPredicted Class: {user_pred[0]}")
+    except ValueError:
+        print("Invalid input! Please enter numeric values for all features.")
+
+# Call the prediction function
+predict_class()
